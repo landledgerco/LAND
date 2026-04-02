@@ -1,0 +1,291 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/landledgerco/lap/schemas/land-record-v1.1.json",
+  "title": "LAP Land Record Verification Response",
+  "description": "JSON Schema for the public verification response from a LAP-conformant implementing platform. Published at GET /api/schema/land-record on any conformant platform.",
+  "version": "1.1.0",
+  "type": "object",
+  "required": ["landId", "rootHash", "anchors", "sections", "recordCounts"],
+  "properties": {
+    "landId": {
+      "type": "integer",
+      "description": "Unique numeric identifier for the land parcel on the implementing platform."
+    },
+    "spvTokenName": {
+      "type": ["string", "null"],
+      "description": "ERC-1155 token name representing this parcel's SPV (e.g., 'FARMLAND-001')."
+    },
+    "rootHash": {
+      "type": ["string", "null"],
+      "description": "SHA-256 Merkle root of all committed section hashes, encoded as lowercase hexadecimal. Null if the record has not yet been anchored.",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "schemaVersion": {
+      "type": ["string", "null"],
+      "description": "Version of the LAP hashing schema used to construct this root hash (e.g., '1.0', '1.1')."
+    },
+    "anchoredAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of the first onchain anchor."
+    },
+    "lastUpdated": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of the most recent record update."
+    },
+    "frozen": {
+      "type": "boolean",
+      "description": "Whether the record is frozen (locked against further updates).",
+      "default": false
+    },
+    "anchors": {
+      "type": "object",
+      "description": "Blockchain anchor proofs for this record.",
+      "required": ["base", "mainnet"],
+      "properties": {
+        "base": {
+          "type": "object",
+          "description": "Anchor proof on Base (Coinbase L2). Primary anchor layer.",
+          "required": ["anchored"],
+          "properties": {
+            "anchored": {
+              "type": "boolean",
+              "description": "Whether the record has been anchored on Base."
+            },
+            "transactionHash": {
+              "type": ["string", "null"],
+              "description": "Transaction hash of the anchoring transaction on Base."
+            },
+            "blockNumber": {
+              "type": ["integer", "null"],
+              "description": "Block number of the anchoring transaction on Base."
+            },
+            "anchoredAt": {
+              "type": ["string", "null"],
+              "format": "date-time",
+              "description": "ISO 8601 UTC timestamp of the Base anchor."
+            }
+          }
+        },
+        "mainnet": {
+          "type": "object",
+          "description": "Anchor proof on Ethereum Mainnet (L1). Optional promotion layer for maximum permanence.",
+          "required": ["anchored"],
+          "properties": {
+            "anchored": {
+              "type": "boolean",
+              "description": "Whether the record has been promoted to Ethereum Mainnet."
+            },
+            "transactionHash": {
+              "type": ["string", "null"],
+              "description": "Transaction hash of the anchoring transaction on Ethereum Mainnet."
+            },
+            "blockNumber": {
+              "type": ["integer", "null"],
+              "description": "Block number of the anchoring transaction on Ethereum Mainnet."
+            },
+            "anchoredAt": {
+              "type": ["string", "null"],
+              "format": "date-time",
+              "description": "ISO 8601 UTC timestamp of the Mainnet anchor."
+            },
+            "contractAddress": {
+              "type": ["string", "null"],
+              "description": "Address of the LandRecordRegistry contract on Ethereum Mainnet."
+            }
+          }
+        }
+      }
+    },
+    "sections": {
+      "type": "object",
+      "description": "Five core data sections, each independently hashed and tracked.",
+      "required": ["identity", "quality", "valuation", "legal", "compliance"],
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/section",
+          "description": "Legal and geographic identity of the parcel. Includes parcel ID, legal description, county, state, acreage, and holding entity."
+        },
+        "quality": {
+          "$ref": "#/$defs/section",
+          "description": "Productive characteristics of the land. Includes soil productivity scores (CSR2/NCCPI), drainage, crop history, and water rights."
+        },
+        "valuation": {
+          "$ref": "#/$defs/section",
+          "description": "Appraiser-attested market valuation. Includes appraised value (USD), appraisal date, and appraiser name and license number."
+        },
+        "legal": {
+          "$ref": "#/$defs/section",
+          "description": "Legal encumbrances and title chain. Includes lien disclosure, deed references, chain of title, and easements."
+        },
+        "compliance": {
+          "$ref": "#/$defs/section",
+          "description": "Regulatory and entity status. Includes entity formation status, KYC status, tax status, and environmental flags."
+        },
+        "ownership": {
+          "$ref": "#/$defs/section",
+          "description": "Optional (schema v1.1). Holding entity identity, deed grantor, and beneficial owners. When present, included in the root hash."
+        }
+      }
+    },
+    "recordCounts": {
+      "type": "object",
+      "description": "Anonymized counts of recorded legal instruments. All fields MUST be present for LAP Anchored conformance; totalLiens MUST NOT be omitted even if zero.",
+      "required": ["totalLiens"],
+      "properties": {
+        "activeLiens": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of liens with status 'active'."
+        },
+        "totalLiens": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total count of all lien records (active, released, and subordinated). MUST be present. Zero is valid."
+        },
+        "titleChainEntries": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of entries in the chain of title."
+        },
+        "deedReferences": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of deed recording references."
+        },
+        "easements": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of easement records."
+        },
+        "attestations": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of third-party attestation records."
+        },
+        "verifiedAttestations": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of attestations that have been independently verified."
+        },
+        "comparableSales": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of comparable sales recorded to support the valuation."
+        },
+        "hasGovernmentData": {
+          "type": "boolean",
+          "description": "Whether a government data bridge (county assessor APN + assessed value + county record URL) is linked."
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "description": "Anonymized summary for public display. No PII is included.",
+      "properties": {
+        "state": {
+          "type": ["string", "null"],
+          "description": "US state abbreviation (e.g., 'IA')."
+        },
+        "county": {
+          "type": ["string", "null"],
+          "description": "County name."
+        },
+        "acreage": {
+          "type": ["string", "null"],
+          "description": "Total acreage as a string (e.g., '160.0')."
+        },
+        "appraisedValue": {
+          "type": ["string", "null"],
+          "description": "Appraised value in USD as a string (e.g., '1280000')."
+        },
+        "tokenizedAt": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "ISO 8601 UTC timestamp of when the land was tokenized."
+        },
+        "blockchainTokenId": {
+          "type": ["string", "null"],
+          "description": "ERC-1155 token ID representing this parcel's SPV on the blockchain."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "section": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["NOT_CAPTURED", "CAPTURED", "ATTESTED"],
+          "description": "Current status of this section. NOT_CAPTURED: data not collected. CAPTURED: data committed and hashed. ATTESTED: independently verified by a licensed third party."
+        },
+        "hash": {
+          "type": ["string", "null"],
+          "description": "SHA-256 hash of this section's canonical data, encoded as lowercase hexadecimal. Null when status is NOT_CAPTURED.",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "lastUpdated": {
+          "type": ["string", "null"],
+          "format": "date-time",
+          "description": "ISO 8601 UTC timestamp of when this section was last updated."
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "landId": 1,
+      "spvTokenName": "FARMLAND-001",
+      "rootHash": "720c84c75e8f8a63e1ef5a597ae8b5730309f9b446e40a246d07dddbb9602e2f",
+      "schemaVersion": "1.1",
+      "anchoredAt": "2026-04-01T00:00:00.000Z",
+      "lastUpdated": "2026-04-01T00:00:00.000Z",
+      "frozen": false,
+      "anchors": {
+        "base": {
+          "anchored": true,
+          "transactionHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+          "blockNumber": 12345678,
+          "anchoredAt": "2026-04-01T00:00:00.000Z"
+        },
+        "mainnet": {
+          "anchored": false,
+          "transactionHash": null,
+          "blockNumber": null,
+          "anchoredAt": null,
+          "contractAddress": null
+        }
+      },
+      "sections": {
+        "identity":   { "status": "CAPTURED",     "hash": "9a46cba34c65bb55f9d5757653739d203c3725ae1fbc1ae2541ec2d832dab173", "lastUpdated": "2026-04-01T00:00:00.000Z" },
+        "quality":    { "status": "NOT_CAPTURED",  "hash": null, "lastUpdated": null },
+        "valuation":  { "status": "NOT_CAPTURED",  "hash": null, "lastUpdated": null },
+        "legal":      { "status": "NOT_CAPTURED",  "hash": null, "lastUpdated": null },
+        "compliance": { "status": "NOT_CAPTURED",  "hash": null, "lastUpdated": null },
+        "ownership":  { "status": "NOT_CAPTURED",  "hash": null, "lastUpdated": null }
+      },
+      "recordCounts": {
+        "activeLiens": 0,
+        "totalLiens": 0,
+        "titleChainEntries": 0,
+        "deedReferences": 0,
+        "easements": 0,
+        "attestations": 0,
+        "verifiedAttestations": 0,
+        "comparableSales": 0,
+        "hasGovernmentData": false
+      },
+      "summary": {
+        "state": "IA",
+        "county": "Black Hawk",
+        "acreage": "160.0",
+        "appraisedValue": null,
+        "tokenizedAt": null,
+        "blockchainTokenId": null
+      }
+    }
+  ]
+}
